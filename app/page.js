@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserPlus, RotateCcw, Check, X, HelpCircle, ShieldAlert, Map, Sword, Search, ChevronUp, ChevronDown } from 'lucide-react';
 
 const INITIAL_PLAYERS = ['Ben', 'Oyuncu 2', 'Oyuncu 3'];
@@ -46,6 +46,11 @@ const App = () => {
   const [grid, setGrid] = useState({});
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  
+  // Swipe-to-close states
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchTranslation, setTouchTranslation] = useState(0);
+  const drawerRef = useRef(null);
 
   useEffect(() => {
     document.title = "Cluedo Kanıt Defteri";
@@ -106,6 +111,30 @@ const App = () => {
 
   const summary = getSummaryData();
 
+  // Drag logic
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStart === null) return;
+    const currentTouchY = e.targetTouches[0].clientY;
+    const diff = currentTouchY - touchStart;
+    
+    // Sadece aşağı kaydırmaya izin ver
+    if (diff > 0) {
+      setTouchTranslation(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchTranslation > 120) {
+      setIsSummaryOpen(false);
+    }
+    setTouchStart(null);
+    setTouchTranslation(0);
+  };
+
   const SectionHeader = ({ icon: Icon, title, colorClass }) => (
     <div className={`flex items-center gap-2 p-3 rounded-lg ${colorClass} text-white font-bold uppercase text-[10px] tracking-[0.2em] shadow-lg w-fit min-w-[150px]`}>
       <Icon size={14} />
@@ -163,7 +192,6 @@ const App = () => {
       </div>
 
       <main className="max-w-5xl mx-auto p-4 space-y-6">
-        {/* ANA TABLO */}
         <div className="relative rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden mt-2">
           <div className="overflow-auto max-h-[calc(100vh-280px)]">
             <table className="w-full border-collapse">
@@ -183,14 +211,11 @@ const App = () => {
               </thead>
               
               <tbody>
-                {/* ŞÜPHELİLER */}
                 <tr>
                   <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
                     <SectionHeader icon={ShieldAlert} title="Şüpheliler" colorClass="bg-red-900/60" />
                   </td>
-                  {players.map((_, i) => (
-                    <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>
-                  ))}
+                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
                 </tr>
                 {GAME_DATA.suspects.map((item) => (
                   <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
@@ -213,14 +238,11 @@ const App = () => {
                   </tr>
                 ))}
 
-                {/* SİLAHLAR */}
                 <tr>
                   <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
                     <SectionHeader icon={Sword} title="Silahlar" colorClass="bg-slate-700" />
                   </td>
-                  {players.map((_, i) => (
-                    <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>
-                  ))}
+                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
                 </tr>
                 {GAME_DATA.weapons.map((item) => (
                   <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
@@ -240,14 +262,11 @@ const App = () => {
                   </tr>
                 ))}
 
-                {/* ODALAR */}
                 <tr>
                   <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
                     <SectionHeader icon={Map} title="Odalar" colorClass="bg-indigo-900/60" />
                   </td>
-                  {players.map((_, i) => (
-                    <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>
-                  ))}
+                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
                 </tr>
                 {GAME_DATA.rooms.map((item) => (
                   <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
@@ -271,7 +290,6 @@ const App = () => {
           </div>
         </div>
 
-        {/* Lejant */}
         <div className="mt-4 grid grid-cols-3 gap-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800/50 mb-20">
           <div className="flex flex-col items-center gap-1">
             <div className="w-8 h-8 rounded-lg bg-red-900/30 border-2 border-red-500/50 flex items-center justify-center text-red-400"><X size={16} /></div>
@@ -290,7 +308,7 @@ const App = () => {
 
       {/* YÜZEN DEDEKTİF PANELİ BUTONU (PANEL AÇIKKEN GİZLENİR) */}
       {!isSummaryOpen && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in duration-300">
+        <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in zoom-in duration-300">
           <button 
             onClick={() => setIsSummaryOpen(true)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(79,70,229,0.4)] transition-all active:scale-90"
@@ -312,19 +330,24 @@ const App = () => {
           <div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-in fade-in duration-300" 
             onClick={() => setIsSummaryOpen(false)} 
+            style={{ opacity: Math.max(0.2, 1 - touchTranslation / 400) }}
           />
-          <div className="fixed bottom-0 left-0 right-0 z-[90] max-h-[75vh] bg-slate-900 border-t border-slate-800 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-bottom duration-300">
+          <div 
+            ref={drawerRef}
+            className={`fixed bottom-0 left-0 right-0 z-[90] max-h-[75vh] bg-slate-900 border-t border-slate-800 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-transform ${touchStart === null ? 'duration-300 ease-out' : 'duration-0'}`}
+            style={{ transform: `translateY(${touchTranslation}px)` }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             
-            {/* KAPATMA TUTAMACI (TIKLANABİLİR) */}
-            <div 
-              onClick={() => setIsSummaryOpen(false)} 
-              className="w-full py-4 flex justify-center cursor-pointer group active:bg-slate-800/50 transition-colors"
-              title="Kapatmak için aşağı çekin veya tıklayın"
-            >
-              <div className="w-12 h-1.5 bg-slate-700 group-hover:bg-slate-500 rounded-full transition-colors" />
+            {/* KAPATMA TUTAMACI (SWIPE AREA) */}
+            <div className="w-full py-4 flex flex-col items-center cursor-grab active:cursor-grabbing">
+              <div className="w-12 h-1.5 bg-slate-700 rounded-full mb-1" />
+              <span className="text-[8px] text-slate-600 uppercase font-bold tracking-widest">Kapatmak için aşağı çekin</span>
             </div>
 
-            <div className="px-6 pb-12 overflow-y-auto max-h-[65vh] space-y-6">
+            <div className="px-6 pb-12 overflow-y-auto max-h-[65vh] space-y-6 select-none">
               <div className="flex justify-between items-center">
                 <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
                   <Search size={18} /> Detaylı Kanıt Listesi
@@ -386,7 +409,7 @@ const App = () => {
         </>
       )}
 
-      <footer className="mt-8 mb-12 text-center px-4">
+      <footer className="mt-8 mb-12 text-center px-4 pb-24">
         <p className="text-slate-600 text-[9px] uppercase tracking-[0.4em]">Developed by Emre Adanır.</p>
       </footer>
     </div>
