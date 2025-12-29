@@ -60,11 +60,14 @@ const App = () => {
   useEffect(() => {
     if (isSummaryOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none'; // iOS safari fix
     } else {
       document.body.style.overflow = 'auto';
+      document.body.style.touchAction = 'auto';
     }
     return () => {
       document.body.style.overflow = 'auto';
+      document.body.style.touchAction = 'auto';
     };
   }, [isSummaryOpen]);
 
@@ -140,7 +143,7 @@ const App = () => {
   };
 
   const handleTouchEnd = () => {
-    if (touchTranslation > 120) {
+    if (touchTranslation > 100) {
       setIsSummaryOpen(false);
     }
     setTouchStart(null);
@@ -155,7 +158,7 @@ const App = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 overflow-x-hidden">
       
       {/* 1. SEVİYE STICKY: HEADER */}
       <header className="max-w-5xl mx-auto p-4 flex justify-between items-center border-b border-slate-800 bg-slate-950/95 backdrop-blur-md sticky top-0 z-[60]">
@@ -302,6 +305,7 @@ const App = () => {
           </div>
         </div>
 
+        {/* Lejant */}
         <div className="mt-4 grid grid-cols-3 gap-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800/50 mb-20">
           <div className="flex flex-col items-center gap-1">
             <div className="w-8 h-8 rounded-lg bg-red-900/30 border-2 border-red-500/50 flex items-center justify-center text-red-400"><X size={16} /></div>
@@ -318,7 +322,7 @@ const App = () => {
         </div>
       </main>
 
-      {/* YÜZEN DEDEKTİF PANELİ BUTONU (PANEL AÇIKKEN GİZLENİR) */}
+      {/* YÜZEN DEDEKTİF PANELİ BUTONU */}
       {!isSummaryOpen && (
         <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in zoom-in duration-300">
           <button 
@@ -331,51 +335,50 @@ const App = () => {
               <span className="text-[10px] font-black flex items-center gap-0.5"><HelpCircle size={10} />{summary.maybe.length}</span>
               <span className="text-[10px] font-black flex items-center gap-0.5"><X size={10} />{summary.excluded.length}</span>
             </div>
-            <ChevronUp size={16} />
           </button>
         </div>
       )}
 
-      {/* AÇILIR PANEL (DRAWER) OVERLAY */}
+      {/* AÇILIR PANEL (DRAWER) */}
       {isSummaryOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-in fade-in duration-300" 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-in fade-in duration-500 ease-out" 
             onClick={() => setIsSummaryOpen(false)} 
-            style={{ opacity: Math.max(0.2, 1 - touchTranslation / 400) }}
+            style={{ opacity: Math.max(0.1, 1 - touchTranslation / 500) }}
           />
           <div 
             ref={drawerRef}
-            className={`fixed bottom-0 left-0 right-0 z-[90] max-h-[75vh] bg-slate-900 border-t border-slate-800 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden transition-transform ${touchStart === null ? 'duration-300 ease-out' : 'duration-0'}`}
+            className={`fixed bottom-0 left-0 right-0 z-[90] max-h-[80vh] bg-slate-900 border-t border-slate-800 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] overflow-hidden animate-in slide-in-from-bottom duration-300 ease-out ${touchStart === null ? 'transition-transform' : ''}`}
             style={{ transform: `translateY(${touchTranslation}px)` }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             
-            {/* KAPATMA TUTAMACI (SWIPE AREA) */}
+            {/* KAPATMA TUTAMACI */}
             <div 
               onClick={() => setIsSummaryOpen(false)}
-              className="w-full py-4 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none"
+              className="w-full pt-6 pb-2 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none"
             >
-              <div className="w-12 h-1.5 bg-slate-700 rounded-full mb-1" />
-              <span className="text-[8px] text-slate-600 uppercase font-bold tracking-widest">Kapatmak için aşağı çekin</span>
+              <div className="w-16 h-1.5 bg-slate-700 rounded-full mb-2" />
+              <span className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">Kapatmak için kaydırın</span>
             </div>
 
-            <div className="px-6 pb-12 overflow-y-auto max-h-[65vh] space-y-6 select-none">
+            <div className="px-8 pb-16 overflow-y-auto max-h-[70vh] space-y-8 select-none">
               <div className="flex justify-between items-center">
                 <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                  <Search size={18} /> Detaylı Kanıt Listesi
+                  <Search size={18} /> Kanıt Listesi
                 </h2>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {summary.confirmed.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest mb-2 block">Bulunan İpuçları (✓)</span>
-                    <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] font-black text-green-500 uppercase tracking-[0.3em] mb-3 block border-l-2 border-green-500 pl-2">Bulunan İpuçları (✓)</span>
+                    <div className="flex flex-wrap gap-2.5">
                       {summary.confirmed.map((name, i) => (
-                        <span key={i} className="bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] px-3 py-1.5 rounded-xl font-bold uppercase tracking-tight">
+                        <span key={i} className="bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] px-4 py-2 rounded-2xl font-black uppercase tracking-tight shadow-sm">
                           {name}
                         </span>
                       ))}
@@ -385,10 +388,10 @@ const App = () => {
                 
                 {summary.maybe.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mb-2 block">Takip Edilen Şüpheler (?)</span>
-                    <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.3em] mb-3 block border-l-2 border-yellow-500 pl-2">Takip Edilen Şüpheler (?)</span>
+                    <div className="flex flex-wrap gap-2.5">
                       {summary.maybe.map((name, i) => (
-                        <span key={i} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] px-3 py-1.5 rounded-xl font-bold uppercase tracking-tight">
+                        <span key={i} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] px-4 py-2 rounded-2xl font-black uppercase tracking-tight shadow-sm">
                           {name}
                         </span>
                       ))}
@@ -398,10 +401,10 @@ const App = () => {
                 
                 {summary.excluded.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 block">Elenen Kartlar (X)</span>
-                    <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] font-black text-red-500/70 uppercase tracking-[0.3em] mb-3 block border-l-2 border-red-500/30 pl-2">Elenen Kartlar (X)</span>
+                    <div className="flex flex-wrap gap-2.5">
                       {summary.excluded.map((name, i) => (
-                        <span key={i} className="bg-red-500/10 border border-red-500/20 text-red-400/60 text-[10px] px-3 py-1.5 rounded-xl font-medium uppercase tracking-tight">
+                        <span key={i} className="bg-red-500/5 border border-red-500/10 text-red-400/50 text-[10px] px-4 py-2 rounded-2xl font-medium uppercase tracking-tight">
                           {name}
                         </span>
                       ))}
@@ -410,7 +413,10 @@ const App = () => {
                 )}
 
                 {summary.confirmed.length === 0 && summary.maybe.length === 0 && summary.excluded.length === 0 && (
-                  <p className="text-slate-500 text-center py-10 italic text-sm">Henüz hiçbir kanıt işaretlenmedi...</p>
+                  <div className="py-20 flex flex-col items-center justify-center text-slate-600 gap-4">
+                    <Search size={40} className="opacity-20" />
+                    <p className="italic text-sm font-medium tracking-wide">Henüz kanıt toplanmadı...</p>
+                  </div>
                 )}
               </div>
             </div>
