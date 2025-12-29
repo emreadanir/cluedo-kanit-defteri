@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { UserPlus, RotateCcw, Check, X, HelpCircle, ShieldAlert, Map, Sword, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { UserPlus, RotateCcw, Check, X, HelpCircle, ShieldAlert, Map, Sword, Search, ChevronUp } from 'lucide-react';
 
 const INITIAL_PLAYERS = ['Ben', 'Oyuncu 2', 'Oyuncu 3'];
 
@@ -55,6 +55,18 @@ const App = () => {
   useEffect(() => {
     document.title = "Cluedo Kanıt Defteri";
   }, []);
+
+  // Panel açıkken arka plan kaydırmasını kilitle
+  useEffect(() => {
+    if (isSummaryOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isSummaryOpen]);
 
   const toggleCell = (itemId, playerIdx) => {
     const key = `${itemId}-${playerIdx}`;
@@ -342,7 +354,10 @@ const App = () => {
           >
             
             {/* KAPATMA TUTAMACI (SWIPE AREA) */}
-            <div className="w-full py-4 flex flex-col items-center cursor-grab active:cursor-grabbing">
+            <div 
+              onClick={() => setIsSummaryOpen(false)}
+              className="w-full py-4 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none"
+            >
               <div className="w-12 h-1.5 bg-slate-700 rounded-full mb-1" />
               <span className="text-[8px] text-slate-600 uppercase font-bold tracking-widest">Kapatmak için aşağı çekin</span>
             </div>
@@ -352,12 +367,6 @@ const App = () => {
                 <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
                   <Search size={18} /> Detaylı Kanıt Listesi
                 </h2>
-                <button 
-                  onClick={() => setIsSummaryOpen(false)}
-                  className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"
-                >
-                  <ChevronDown size={20} />
-                </button>
               </div>
               
               <div className="space-y-6">
