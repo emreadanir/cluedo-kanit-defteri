@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { UserPlus, RotateCcw, Check, X, HelpCircle, ShieldAlert, Map, Sword } from 'lucide-react';
+import { UserPlus, RotateCcw, Check, X, HelpCircle, ShieldAlert, Map, Sword, Search } from 'lucide-react';
 
 const INITIAL_PLAYERS = ['Ben', 'Oyuncu 2', 'Oyuncu 3'];
 
@@ -62,7 +62,6 @@ const App = () => {
   const [grid, setGrid] = useState({});
   const [newPlayerName, setNewPlayerName] = useState('');
 
-  // Sayfa başlığını tarayıcıda güncelleme
   useEffect(() => {
     document.title = "Cluedo Kanıt Defteri";
   }, []);
@@ -95,6 +94,31 @@ const App = () => {
     }
   };
 
+  // Özet verilerini hesapla
+  const getSummary = () => {
+    const allItems = [...GAME_DATA.suspects, ...GAME_DATA.weapons, ...GAME_DATA.rooms];
+    const confirmed = [];
+    const maybe = [];
+
+    allItems.forEach(item => {
+      let isConfirmed = false;
+      let isMaybe = false;
+      
+      players.forEach((_, pIdx) => {
+        const status = grid[`${item.id}-${pIdx}`];
+        if (status === 3) isConfirmed = true;
+        if (status === 2) isMaybe = true;
+      });
+
+      if (isConfirmed) confirmed.push(item.name);
+      else if (isMaybe) maybe.push(item.name);
+    });
+
+    return { confirmed, maybe };
+  };
+
+  const { confirmed, maybe } = getSummary();
+
   const SectionHeader = ({ icon: Icon, title, colorClass }) => (
     <div className={`flex items-center gap-2 p-3 rounded-lg ${colorClass} text-white font-bold uppercase text-[10px] tracking-[0.2em] shadow-lg w-fit min-w-[150px]`}>
       <Icon size={14} />
@@ -103,7 +127,7 @@ const App = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 pb-10">
       {/* Header */}
       <header className="max-w-5xl mx-auto p-4 flex justify-between items-center border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div>
@@ -118,9 +142,41 @@ const App = () => {
         </button>
       </header>
 
-      <main className="max-w-5xl mx-auto p-4">
+      <main className="max-w-5xl mx-auto p-4 space-y-6">
+        
+        {/* ÖZET PANOSU (DİNAMİK) */}
+        {(confirmed.length > 0 || maybe.length > 0) && (
+          <div className="bg-indigo-950/20 border border-indigo-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+              <Search size={14} /> Dedektif Özeti
+            </h2>
+            <div className="space-y-3">
+              {confirmed.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-[9px] font-bold text-green-500 uppercase w-full mb-1">Bulunan İpuçları:</span>
+                  {confirmed.map((name, i) => (
+                    <span key={i} className="bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] px-2 py-1 rounded-md font-bold">
+                      ✓ {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {maybe.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-[9px] font-bold text-yellow-500 uppercase w-full mb-1">Takip Edilenler:</span>
+                  {maybe.map((name, i) => (
+                    <span key={i} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] px-2 py-1 rounded-md font-bold">
+                      ? {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Oyuncu Ekleme */}
-        <div className="bg-slate-900/50 p-3 rounded-xl mb-6 border border-slate-800 shadow-xl">
+        <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 shadow-xl">
           <div className="flex flex-wrap gap-2 mb-3">
             {players.map((player, idx) => (
               <div key={idx} className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
@@ -142,7 +198,7 @@ const App = () => {
             />
             <button 
               onClick={addPlayer}
-              className="bg-indigo-600 text-white p-2 rounded-lg active:scale-95"
+              className="bg-indigo-600 text-white p-2 rounded-lg active:scale-95 shadow-lg shadow-indigo-600/20"
             >
               <UserPlus size={20} />
             </button>
@@ -151,7 +207,7 @@ const App = () => {
 
         {/* Ana Tablo */}
         <div className="relative rounded-xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
-          <div className="overflow-auto max-h-[65vh]">
+          <div className="overflow-auto max-h-[60vh]">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-900 z-40">
@@ -270,7 +326,7 @@ const App = () => {
         </div>
 
         {/* Lejant */}
-        <div className="mt-6 grid grid-cols-3 gap-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800/50">
+        <div className="mt-4 grid grid-cols-3 gap-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800/50">
           <div className="flex flex-col items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-red-900/30 border-2 border-red-500/50 flex items-center justify-center text-red-400">
               <X size={18} />
