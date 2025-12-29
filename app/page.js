@@ -60,15 +60,9 @@ const App = () => {
   useEffect(() => {
     if (isSummaryOpen) {
       document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none'; // iOS safari fix
     } else {
       document.body.style.overflow = 'auto';
-      document.body.style.touchAction = 'auto';
     }
-    return () => {
-      document.body.style.overflow = 'auto';
-      document.body.style.touchAction = 'auto';
-    };
   }, [isSummaryOpen]);
 
   const toggleCell = (itemId, playerIdx) => {
@@ -101,51 +95,41 @@ const App = () => {
 
   const getSummaryData = () => {
     const allItems = [...GAME_DATA.suspects, ...GAME_DATA.weapons, ...GAME_DATA.rooms];
-    const confirmed = new Set();
-    const maybe = new Set();
-    const excluded = new Set();
+    const confirmed = [];
+    const maybe = [];
+    const excluded = [];
 
     allItems.forEach(item => {
-      players.forEach((_, pIdx) => {
+      const pConfirmed = [];
+      const pMaybe = [];
+      const pExcluded = [];
+
+      players.forEach((player, pIdx) => {
         const status = grid[`${item.id}-${pIdx}`];
-        if (status === 3) confirmed.add(item.name);
-        else if (status === 2) maybe.add(item.name);
-        else if (status === 1) excluded.add(item.name);
+        if (status === 3) pConfirmed.push(player);
+        else if (status === 2) pMaybe.push(player);
+        else if (status === 1) pExcluded.push(player);
       });
+
+      if (pConfirmed.length > 0) confirmed.push({ name: item.name, players: pConfirmed });
+      else if (pMaybe.length > 0) maybe.push({ name: item.name, players: pMaybe });
+      else if (pExcluded.length > 0) excluded.push({ name: item.name, players: pExcluded });
     });
 
-    confirmed.forEach(name => { maybe.delete(name); excluded.delete(name); });
-    maybe.forEach(name => excluded.delete(name));
-
-    return { 
-      confirmed: Array.from(confirmed), 
-      maybe: Array.from(maybe), 
-      excluded: Array.from(excluded) 
-    };
+    return { confirmed, maybe, excluded };
   };
 
   const summary = getSummaryData();
 
-  // Drag logic
-  const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientY);
-  };
-
+  // Swipe logic
+  const handleTouchStart = (e) => setTouchStart(e.targetTouches[0].clientY);
   const handleTouchMove = (e) => {
     if (touchStart === null) return;
-    const currentTouchY = e.targetTouches[0].clientY;
-    const diff = currentTouchY - touchStart;
-    
-    // Sadece aşağı kaydırmaya izin ver
-    if (diff > 0) {
-      setTouchTranslation(diff);
-    }
+    const diff = e.targetTouches[0].clientY - touchStart;
+    if (diff > 0) setTouchTranslation(diff);
   };
-
   const handleTouchEnd = () => {
-    if (touchTranslation > 100) {
-      setIsSummaryOpen(false);
-    }
+    if (touchTranslation > 100) setIsSummaryOpen(false);
     setTouchStart(null);
     setTouchTranslation(0);
   };
@@ -226,203 +210,144 @@ const App = () => {
               </thead>
               
               <tbody>
-                <tr>
-                  <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
-                    <SectionHeader icon={ShieldAlert} title="Şüpheliler" colorClass="bg-red-900/60" />
-                  </td>
-                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
-                </tr>
-                {GAME_DATA.suspects.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                    <td className="sticky left-0 z-20 bg-slate-900 p-3 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-4 rounded-full ${item.color}`}></div>
-                        <span className="text-[11px] font-bold whitespace-nowrap uppercase tracking-tight">{item.name}</span>
-                      </div>
-                    </td>
-                    {players.map((_, pIdx) => {
-                      const status = grid[`${item.id}-${pIdx}`] || 0;
-                      return (
-                        <td key={pIdx} onClick={() => toggleCell(item.id, pIdx)} className="p-1 cursor-pointer border-r border-slate-800/20 last:border-r-0">
-                          <div className={`h-11 w-full min-w-[60px] flex items-center justify-center rounded-lg border-2 transition-all duration-200 ${STATUS_MODES[status].boxClass}`}>
-                            {STATUS_MODES[status].icon}
+                {/* Şüpheliler, Silahlar, Odalar Sections */}
+                {Object.entries(GAME_DATA).map(([key, items]) => (
+                  <React.Fragment key={key}>
+                    <tr>
+                      <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
+                        <SectionHeader 
+                          icon={key === 'suspects' ? ShieldAlert : (key === 'weapons' ? Sword : Map)} 
+                          title={key === 'suspects' ? "Şüpheliler" : (key === 'weapons' ? "Silahlar" : "Odalar")} 
+                          colorClass={key === 'suspects' ? "bg-red-900/60" : (key === 'weapons' ? "bg-slate-700" : "bg-indigo-900/60")} 
+                        />
+                      </td>
+                      {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
+                    </tr>
+                    {items.map((item) => (
+                      <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+                        <td className="sticky left-0 z-20 bg-slate-900 p-3 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                          <div className="flex items-center gap-2">
+                            {item.color && <div className={`w-1.5 h-4 rounded-full ${item.color}`}></div>}
+                            <span className="text-[11px] font-bold whitespace-nowrap uppercase tracking-tight">{item.name}</span>
                           </div>
                         </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-
-                <tr>
-                  <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
-                    <SectionHeader icon={Sword} title="Silahlar" colorClass="bg-slate-700" />
-                  </td>
-                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
-                </tr>
-                {GAME_DATA.weapons.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                    <td className="sticky left-0 z-20 bg-slate-900 p-3 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                      <span className="text-[11px] font-bold pl-3 whitespace-nowrap uppercase tracking-tight">{item.name}</span>
-                    </td>
-                    {players.map((_, pIdx) => {
-                      const status = grid[`${item.id}-${pIdx}`] || 0;
-                      return (
-                        <td key={pIdx} onClick={() => toggleCell(item.id, pIdx)} className="p-1 cursor-pointer border-r border-slate-800/20 last:border-r-0">
-                          <div className={`h-11 w-full min-w-[60px] flex items-center justify-center rounded-lg border-2 transition-all duration-200 ${STATUS_MODES[status].boxClass}`}>
-                            {STATUS_MODES[status].icon}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-
-                <tr>
-                  <td className="sticky left-0 z-20 bg-slate-900/95 backdrop-blur-sm p-2 border-r border-slate-800 shadow-xl">
-                    <SectionHeader icon={Map} title="Odalar" colorClass="bg-indigo-900/60" />
-                  </td>
-                  {players.map((_, i) => <td key={i} className="bg-slate-900/40 border-b border-r border-slate-800 last:border-r-0"></td>)}
-                </tr>
-                {GAME_DATA.rooms.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                    <td className="sticky left-0 z-20 bg-slate-900 p-3 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                      <span className="text-[11px] font-bold pl-3 whitespace-nowrap uppercase tracking-tight">{item.name}</span>
-                    </td>
-                    {players.map((_, pIdx) => {
-                      const status = grid[`${item.id}-${pIdx}`] || 0;
-                      return (
-                        <td key={pIdx} onClick={() => toggleCell(item.id, pIdx)} className="p-1 cursor-pointer border-r border-slate-800/20 last:border-r-0">
-                          <div className={`h-11 w-full min-w-[60px] flex items-center justify-center rounded-lg border-2 transition-all duration-200 ${STATUS_MODES[status].boxClass}`}>
-                            {STATUS_MODES[status].icon}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
+                        {players.map((_, pIdx) => {
+                          const status = grid[`${item.id}-${pIdx}`] || 0;
+                          return (
+                            <td key={pIdx} onClick={() => toggleCell(item.id, pIdx)} className="p-1 cursor-pointer border-r border-slate-800/20 last:border-r-0">
+                              <div className={`h-11 w-full min-w-[60px] flex items-center justify-center rounded-lg border-2 transition-all duration-200 ${STATUS_MODES[status].boxClass}`}>
+                                {STATUS_MODES[status].icon}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Lejant */}
         <div className="mt-4 grid grid-cols-3 gap-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800/50 mb-20">
           <div className="flex flex-col items-center gap-1">
             <div className="w-8 h-8 rounded-lg bg-red-900/30 border-2 border-red-500/50 flex items-center justify-center text-red-400"><X size={16} /></div>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">YOK</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center">YOK</span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className="w-8 h-8 rounded-lg bg-yellow-900/30 border-2 border-yellow-500/50 flex items-center justify-center text-yellow-400"><HelpCircle size={16} /></div>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">BELKİ</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center">BELKİ</span>
           </div>
           <div className="flex flex-col items-center gap-1">
             <div className="w-8 h-8 rounded-lg bg-green-900/30 border-2 border-green-500/50 flex items-center justify-center text-green-400"><Check size={16} /></div>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">VAR</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center">VAR</span>
           </div>
         </div>
       </main>
 
       {/* YÜZEN DEDEKTİF PANELİ BUTONU */}
-      {!isSummaryOpen && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in zoom-in duration-300">
-          <button 
-            onClick={() => setIsSummaryOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(79,70,229,0.4)] transition-all active:scale-90"
-          >
-            <Search size={20} />
-            <div className="flex items-center gap-2 border-l border-indigo-400/50 pl-2">
-              <span className="text-[10px] font-black flex items-center gap-0.5"><Check size={10} />{summary.confirmed.length}</span>
-              <span className="text-[10px] font-black flex items-center gap-0.5"><HelpCircle size={10} />{summary.maybe.length}</span>
-              <span className="text-[10px] font-black flex items-center gap-0.5"><X size={10} />{summary.excluded.length}</span>
-            </div>
-          </button>
-        </div>
-      )}
+      <div className={`fixed bottom-6 right-6 z-[100] transition-all duration-300 ${isSummaryOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
+        <button 
+          onClick={() => setIsSummaryOpen(true)}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(79,70,229,0.4)] active:scale-90"
+        >
+          <Search size={20} />
+          <div className="flex items-center gap-2 border-l border-indigo-400/50 pl-2">
+            <span className="text-[10px] font-black flex items-center gap-0.5"><Check size={10} />{summary.confirmed.length}</span>
+            <span className="text-[10px] font-black flex items-center gap-0.5"><HelpCircle size={10} />{summary.maybe.length}</span>
+            <span className="text-[10px] font-black flex items-center gap-0.5"><X size={10} />{summary.excluded.length}</span>
+          </div>
+        </button>
+      </div>
 
-      {/* AÇILIR PANEL (DRAWER) */}
-      {isSummaryOpen && (
-        <>
+      {/* AÇILIR PANEL (DRAWER) COMPONENT */}
+      <div className={`fixed inset-0 z-[80] transition-opacity duration-300 ${isSummaryOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <div 
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+          onClick={() => setIsSummaryOpen(false)} 
+          style={{ opacity: Math.max(0.1, (1 - touchTranslation / 500) * 0.6) }}
+        />
+        <div 
+          ref={drawerRef}
+          className={`absolute bottom-0 left-0 right-0 max-h-[85vh] bg-slate-900 border-t border-slate-800 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] overflow-hidden transition-transform duration-500 ease-out flex flex-col`}
+          style={{ transform: `translateY(${isSummaryOpen ? touchTranslation : '100'}%)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          
+          {/* DRAG HANDLE AREA */}
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-in fade-in duration-500 ease-out" 
-            onClick={() => setIsSummaryOpen(false)} 
-            style={{ opacity: Math.max(0.1, 1 - touchTranslation / 500) }}
-          />
-          <div 
-            ref={drawerRef}
-            className={`fixed bottom-0 left-0 right-0 z-[90] max-h-[80vh] bg-slate-900 border-t border-slate-800 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] overflow-hidden animate-in slide-in-from-bottom duration-300 ease-out ${touchStart === null ? 'transition-transform' : ''}`}
-            style={{ transform: `translateY(${touchTranslation}px)` }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            onClick={() => setIsSummaryOpen(false)}
+            className="w-full pt-6 pb-2 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
           >
+            <div className="w-16 h-1.5 bg-slate-700 rounded-full mb-2" />
+            <span className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">Kapatmak için kaydırın</span>
+          </div>
+
+          <div className="px-8 pb-16 overflow-y-auto flex-grow space-y-8 select-none">
+            <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2 sticky top-0 bg-slate-900 py-2 z-10">
+              <Search size={18} /> Detaylı Kanıt Listesi
+            </h2>
             
-            {/* KAPATMA TUTAMACI */}
-            <div 
-              onClick={() => setIsSummaryOpen(false)}
-              className="w-full pt-6 pb-2 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none"
-            >
-              <div className="w-16 h-1.5 bg-slate-700 rounded-full mb-2" />
-              <span className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">Kapatmak için kaydırın</span>
-            </div>
+            <div className="space-y-8">
+              {[
+                { label: "Bulunan İpuçları (✓)", data: summary.confirmed, color: "text-green-500", bg: "bg-green-500/10", border: "border-green-500/30", text: "text-green-400" },
+                { label: "Takip Edilen Şüpheler (?)", data: summary.maybe, color: "text-yellow-500", bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-400" },
+                { label: "Elenen Kartlar (X)", data: summary.excluded, color: "text-red-500/70", bg: "bg-red-500/5", border: "border-red-500/10", text: "text-red-400/50" }
+              ].map((group, idx) => group.data.length > 0 && (
+                <div key={idx}>
+                  <span className={`text-[10px] font-black ${group.color} uppercase tracking-[0.3em] mb-4 block border-l-2 border-current pl-2`}>
+                    {group.label}
+                  </span>
+                  <div className="grid grid-cols-1 gap-3">
+                    {group.data.map((item, i) => (
+                      <div key={i} className={`${group.bg} ${group.border} border p-3 rounded-2xl flex flex-col gap-1.5`}>
+                        <span className={`${group.text} text-xs font-black uppercase`}>{item.name}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {item.players.map((p, pi) => (
+                            <span key={pi} className="bg-white/10 text-[8px] font-bold px-2 py-0.5 rounded-full text-slate-300">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
-            <div className="px-8 pb-16 overflow-y-auto max-h-[70vh] space-y-8 select-none">
-              <div className="flex justify-between items-center">
-                <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                  <Search size={18} /> Kanıt Listesi
-                </h2>
-              </div>
-              
-              <div className="space-y-8">
-                {summary.confirmed.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-black text-green-500 uppercase tracking-[0.3em] mb-3 block border-l-2 border-green-500 pl-2">Bulunan İpuçları (✓)</span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {summary.confirmed.map((name, i) => (
-                        <span key={i} className="bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] px-4 py-2 rounded-2xl font-black uppercase tracking-tight shadow-sm">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {summary.maybe.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.3em] mb-3 block border-l-2 border-yellow-500 pl-2">Takip Edilen Şüpheler (?)</span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {summary.maybe.map((name, i) => (
-                        <span key={i} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] px-4 py-2 rounded-2xl font-black uppercase tracking-tight shadow-sm">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {summary.excluded.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-black text-red-500/70 uppercase tracking-[0.3em] mb-3 block border-l-2 border-red-500/30 pl-2">Elenen Kartlar (X)</span>
-                    <div className="flex flex-wrap gap-2.5">
-                      {summary.excluded.map((name, i) => (
-                        <span key={i} className="bg-red-500/5 border border-red-500/10 text-red-400/50 text-[10px] px-4 py-2 rounded-2xl font-medium uppercase tracking-tight">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {summary.confirmed.length === 0 && summary.maybe.length === 0 && summary.excluded.length === 0 && (
-                  <div className="py-20 flex flex-col items-center justify-center text-slate-600 gap-4">
-                    <Search size={40} className="opacity-20" />
-                    <p className="italic text-sm font-medium tracking-wide">Henüz kanıt toplanmadı...</p>
-                  </div>
-                )}
-              </div>
+              {summary.confirmed.length === 0 && summary.maybe.length === 0 && summary.excluded.length === 0 && (
+                <div className="py-20 flex flex-col items-center justify-center text-slate-600 gap-4">
+                  <Search size={40} className="opacity-20" />
+                  <p className="italic text-sm font-medium tracking-wide">Henüz kanıt toplanmadı...</p>
+                </div>
+              )}
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
       <footer className="mt-8 mb-12 text-center px-4 pb-24">
         <p className="text-slate-600 text-[9px] uppercase tracking-[0.4em]">Developed by Emre Adanır.</p>
