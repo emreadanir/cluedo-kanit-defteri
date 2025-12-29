@@ -288,21 +288,23 @@ const App = () => {
         </div>
       </main>
 
-      {/* YÜZEN DEDEKTİF PANELİ BUTONU */}
-      <div className="fixed bottom-6 right-6 z-[100]">
-        <button 
-          onClick={() => setIsSummaryOpen(!isSummaryOpen)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(79,70,229,0.4)] transition-all active:scale-90"
-        >
-          <Search size={20} className={isSummaryOpen ? "rotate-90 transition-transform" : ""} />
-          <div className="flex items-center gap-2 border-l border-indigo-400/50 pl-2">
-            <span className="text-[10px] font-black flex items-center gap-0.5"><Check size={10} />{summary.confirmed.length}</span>
-            <span className="text-[10px] font-black flex items-center gap-0.5"><HelpCircle size={10} />{summary.maybe.length}</span>
-            <span className="text-[10px] font-black flex items-center gap-0.5"><X size={10} />{summary.excluded.length}</span>
-          </div>
-          {isSummaryOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-        </button>
-      </div>
+      {/* YÜZEN DEDEKTİF PANELİ BUTONU (PANEL AÇIKKEN GİZLENİR) */}
+      {!isSummaryOpen && (
+        <div className="fixed bottom-6 right-6 z-[100] animate-in fade-in duration-300">
+          <button 
+            onClick={() => setIsSummaryOpen(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-full shadow-[0_10px_30px_rgba(79,70,229,0.4)] transition-all active:scale-90"
+          >
+            <Search size={20} />
+            <div className="flex items-center gap-2 border-l border-indigo-400/50 pl-2">
+              <span className="text-[10px] font-black flex items-center gap-0.5"><Check size={10} />{summary.confirmed.length}</span>
+              <span className="text-[10px] font-black flex items-center gap-0.5"><HelpCircle size={10} />{summary.maybe.length}</span>
+              <span className="text-[10px] font-black flex items-center gap-0.5"><X size={10} />{summary.excluded.length}</span>
+            </div>
+            <ChevronUp size={16} />
+          </button>
+        </div>
+      )}
 
       {/* AÇILIR PANEL (DRAWER) OVERLAY */}
       {isSummaryOpen && (
@@ -311,12 +313,29 @@ const App = () => {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] animate-in fade-in duration-300" 
             onClick={() => setIsSummaryOpen(false)} 
           />
-          <div className="fixed bottom-0 left-0 right-0 z-[90] max-h-[70vh] bg-slate-900 border-t border-slate-800 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-bottom duration-300">
-            <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto my-4" />
-            <div className="px-6 pb-12 overflow-y-auto max-h-[60vh] space-y-6">
-              <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                <Search size={18} /> Detaylı Kanıt Listesi
-              </h2>
+          <div className="fixed bottom-0 left-0 right-0 z-[90] max-h-[75vh] bg-slate-900 border-t border-slate-800 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in slide-in-from-bottom duration-300">
+            
+            {/* KAPATMA TUTAMACI (TIKLANABİLİR) */}
+            <div 
+              onClick={() => setIsSummaryOpen(false)} 
+              className="w-full py-4 flex justify-center cursor-pointer group active:bg-slate-800/50 transition-colors"
+              title="Kapatmak için aşağı çekin veya tıklayın"
+            >
+              <div className="w-12 h-1.5 bg-slate-700 group-hover:bg-slate-500 rounded-full transition-colors" />
+            </div>
+
+            <div className="px-6 pb-12 overflow-y-auto max-h-[65vh] space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-sm font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <Search size={18} /> Detaylı Kanıt Listesi
+                </h2>
+                <button 
+                  onClick={() => setIsSummaryOpen(false)}
+                  className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"
+                >
+                  <ChevronDown size={20} />
+                </button>
+              </div>
               
               <div className="space-y-6">
                 {summary.confirmed.length > 0 && (
