@@ -31,7 +31,7 @@ export default function Home() {
 
   // --- EFFECT: LOAD & SAVE ---
   useEffect(() => {
-    const savedState = localStorage.getItem('cluedoDarkState_v2');
+    const savedState = localStorage.getItem('cluedoDarkState_v3');
     if (savedState) {
       const parsed = JSON.parse(savedState);
       setPlayers(parsed.players || []);
@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     if (Object.keys(gameData).length > 0) {
-      localStorage.setItem('cluedoDarkState_v2', JSON.stringify({ players, gameData }));
+      localStorage.setItem('cluedoDarkState_v3', JSON.stringify({ players, gameData }));
     }
   }, [players, gameData]);
 
@@ -143,15 +143,6 @@ export default function Home() {
     }
   };
 
-  const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'yes': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'no': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'maybe': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      default: return 'hidden';
-    }
-  };
-
   const getStatusIcon = (status) => {
     switch (status) {
       case 'yes': return '✓';
@@ -159,6 +150,34 @@ export default function Home() {
       case 'maybe': return '?';
       default: return '';
     }
+  };
+
+  // --- HELPERS FOR REPORT ---
+  const getReportData = () => {
+    const data = {
+      yes: [],
+      maybe: [],
+      no: []
+    };
+
+    [...INITIAL_SUSPECTS, ...INITIAL_WEAPONS, ...INITIAL_ROOMS].forEach(card => {
+      const cardStatuses = gameData[card];
+      if (!cardStatuses) return;
+
+      Object.entries(cardStatuses).forEach(([playerId, status]) => {
+        if (status === 'unknown') return;
+        
+        const player = players.find(p => p.id === parseInt(playerId));
+        if (player && data[status]) {
+          data[status].push({
+            card: card,
+            player: player.name
+          });
+        }
+      });
+    });
+
+    return data;
   };
 
   // --- COMPONENTS ---
@@ -210,38 +229,32 @@ export default function Home() {
     </div>
   );
 
-  const ReportSection = ({ title, items }) => {
-    // Sadece herhangi bir işaretleme yapılmış kartları filtrele
-    const activeItems = items.filter(cardName => {
-        const statuses = gameData[cardName] || {};
-        return Object.values(statuses).some(s => s !== 'unknown');
-    });
+  const StatusGroup = ({ title, items, type }) => {
+    if (items.length === 0) return null;
 
-    if (activeItems.length === 0) return null;
+    let styles = {};
+    if (type === 'yes') styles = { text: 'text-green-400', border: 'border-green-500/30', bg: 'bg-green-500/10', icon: '✓' };
+    if (type === 'maybe') styles = { text: 'text-yellow-400', border: 'border-yellow-500/30', bg: 'bg-yellow-500/10', icon: '?' };
+    if (type === 'no') styles = { text: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10', icon: '✕' };
 
     return (
       <div className="mb-6 last:mb-0">
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 px-1 border-b border-slate-800 pb-2">
-            {title}
+        <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 px-1 border-b border-slate-800 pb-2 flex justify-between ${styles.text}`}>
+          <span>{title}</span>
+          <span className="opacity-60">{items.length}</span>
         </h4>
-        <div className="space-y-3">
-            {activeItems.map(cardName => (
-                <div key={cardName} className="bg-slate-950/50 rounded-lg p-3 border border-slate-800">
-                    <div className="font-bold text-slate-200 mb-2">{cardName}</div>
-                    <div className="flex flex-wrap gap-2">
-                        {players.map(player => {
-                            const status = gameData[cardName]?.[player.id];
-                            if (!status || status === 'unknown') return null;
-                            return (
-                                <div key={player.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border ${getStatusBadgeStyle(status)}`}>
-                                    <span>{player.name}:</span>
-                                    <span className="text-base leading-none">{getStatusIcon(status)}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            ))}
+        <div className="space-y-2">
+          {items.map((item, idx) => (
+            <div key={idx} className={`rounded-lg p-3 border flex items-center justify-between ${styles.bg} ${styles.border}`}>
+              <span className="font-bold text-slate-200">{item.card}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-slate-400 uppercase bg-slate-900/50 px-2 py-1 rounded">
+                  {item.player}
+                </span>
+                <span className={`text-lg font-bold ${styles.text}`}>{styles.icon}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -372,18 +385,32 @@ export default function Home() {
                                 <FileText className="text-blue-400" />
                                 Detaylı Rapor
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1">İşaretlenmiş tüm ipuçları</p>
+                            <p className="text-sm text-slate-500 mt-1">İşaretlenen durumların özeti</p>
                         </div>
 
-                        <ReportSection title="Şüpheliler" items={INITIAL_SUSPECTS} />
-                        <ReportSection title="Aletler" items={INITIAL_WEAPONS} />
-                        <ReportSection title="Odalar" items={INITIAL_ROOMS} />
+                        {(() => {
+                          const reportData = getReportData();
+                          const isEmpty = reportData.yes.length === 0 && reportData.maybe.length === 0 && reportData.no.length === 0;
 
-                        {!Object.values(gameData).some(item => Object.values(item).some(v => v !== 'unknown')) && (
-                            <div className="text-center py-10 text-slate-600 italic">
-                                Henüz hiçbir işaretleme yapılmamış.
-                            </div>
-                        )}
+                          if (isEmpty) {
+                            return (
+                                <div className="text-center py-10 flex flex-col items-center gap-4 text-slate-600">
+                                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
+                                      <FileText size={32} className="opacity-20" />
+                                    </div>
+                                    <p className="italic">Henüz hiçbir işaretleme yapılmamış.</p>
+                                </div>
+                            );
+                          }
+
+                          return (
+                            <>
+                              <StatusGroup title="Kesinleşenler (Var)" items={reportData.yes} type="yes" />
+                              <StatusGroup title="Şüpheler (Belki)" items={reportData.maybe} type="maybe" />
+                              <StatusGroup title="Olmayanlar (Yok)" items={reportData.no} type="no" />
+                            </>
+                          );
+                        })()}
                     </div>
                 )}
             </div>
