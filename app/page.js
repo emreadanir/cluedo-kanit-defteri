@@ -422,4 +422,4 @@ export default function Home() {
 
     </div>
   );
-}
+} // deneme
