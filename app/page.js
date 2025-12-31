@@ -4,10 +4,30 @@ import { useState, useEffect, useRef } from 'react';
 import { RotateCcw, X, Users, FileText, Plus, Trash2 } from 'lucide-react';
 
 // Başlangıç Verileri
-// Güncellenmiş Şüpheli Listesi
 const INITIAL_SUSPECTS = ['Başkan Green', 'Albay Mustard', 'Şef White', 'Avukat Peacock', 'Profesör Plum', 'Bayan Scarlett'];
 const INITIAL_WEAPONS = ['Şamdan', 'Hançer', 'Tabanca', 'Kurşun Boru', 'İp', 'İngiliz Anahtarı'];
 const INITIAL_ROOMS = ['Balo Salonu', 'Bilardo Odası', 'Kış Bahçesi', 'Yemek Odası', 'Hol', 'Mutfak', 'Kütüphane', 'Salon', 'Çalışma Odası'];
+
+// Kart İkonları (Emojiler)
+const CARD_ICONS = {
+  // Aletler
+  'Şamdan': '🕯️',
+  'Hançer': '🗡️',
+  'Tabanca': '🔫',
+  'Kurşun Boru': '🔩',
+  'İp': '🪢',
+  'İngiliz Anahtarı': '🔧',
+  // Odalar
+  'Balo Salonu': '💃',
+  'Bilardo Odası': '🎱',
+  'Kış Bahçesi': '🌿',
+  'Yemek Odası': '🍽️',
+  'Hol': '🚪',
+  'Mutfak': '🍳',
+  'Kütüphane': '📚',
+  'Salon': '🛋️',
+  'Çalışma Odası': '💼',
+};
 
 export default function Home() {
   // --- STATES ---
@@ -32,7 +52,7 @@ export default function Home() {
 
   // --- EFFECT: LOAD & SAVE ---
   useEffect(() => {
-    const savedState = localStorage.getItem('cluedoDarkState_v4');
+    const savedState = localStorage.getItem('cluedoDarkState_v6');
     if (savedState) {
       const parsed = JSON.parse(savedState);
       setPlayers(parsed.players || []);
@@ -48,7 +68,7 @@ export default function Home() {
 
   useEffect(() => {
     if (Object.keys(gameData).length > 0) {
-      localStorage.setItem('cluedoDarkState_v4', JSON.stringify({ players, gameData }));
+      localStorage.setItem('cluedoDarkState_v6', JSON.stringify({ players, gameData }));
     }
   }, [players, gameData]);
 
@@ -153,6 +173,16 @@ export default function Home() {
     }
   };
 
+  const getCharacterColor = (name) => {
+    if (name.includes('Green')) return 'bg-green-500';
+    if (name.includes('Mustard')) return 'bg-yellow-500';
+    if (name.includes('White')) return 'bg-slate-100';
+    if (name.includes('Peacock')) return 'bg-blue-400';
+    if (name.includes('Plum')) return 'bg-purple-500';
+    if (name.includes('Scarlett')) return 'bg-red-500';
+    return null;
+  };
+
   // --- HELPERS FOR REPORT ---
   const getReportData = () => {
     const data = {
@@ -182,27 +212,43 @@ export default function Home() {
   };
 
   // --- COMPONENTS ---
-  const TableRow = ({ cardName, category }) => (
-    <div className="flex border-b border-slate-800 last:border-0 h-12 group">
-      <div className="sticky left-0 z-10 bg-slate-900 w-32 min-w-[8rem] flex items-center px-3 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
-        <span className="text-sm font-medium text-slate-300 truncate group-hover:text-white transition-colors">{cardName}</span>
+  const TableRow = ({ cardName, category }) => {
+    const charColor = category === 'suspect' ? getCharacterColor(cardName) : null;
+    const cardIcon = CARD_ICONS[cardName];
+
+    return (
+      <div className="flex border-b border-slate-800 last:border-0 h-12 group min-w-max">
+        <div className="sticky left-0 z-10 bg-slate-900 w-32 min-w-[8rem] flex items-center px-2 border-r border-slate-800 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">
+          <div className="flex items-center gap-2 w-full overflow-hidden">
+            {/* Şüpheliler için Renk, Diğerleri için Emoji */}
+            {category === 'suspect' && charColor ? (
+              <div className={`w-2 h-2 rounded-full shrink-0 ${charColor} shadow-[0_0_8px_rgba(255,255,255,0.2)]`} />
+            ) : cardIcon ? (
+              <span className="text-base shrink-0 leading-none filter drop-shadow-md">{cardIcon}</span>
+            ) : null}
+            
+            <span className="text-[11px] sm:text-sm font-medium text-slate-300 truncate group-hover:text-white transition-colors leading-tight" title={cardName}>
+              {cardName}
+            </span>
+          </div>
+        </div>
+        <div className="flex">
+          {players.map(player => {
+            const status = gameData[cardName]?.[player.id] || 'unknown';
+            return (
+              <div 
+                key={player.id} 
+                onClick={() => openSelector(cardName, player.id, category)}
+                className={`w-16 min-w-[4rem] border-r border-slate-800 flex items-center justify-center cursor-pointer transition-all ${getStatusStyle(status)}`}
+              >
+                <span className="text-lg">{getStatusIcon(status)}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="flex">
-        {players.map(player => {
-          const status = gameData[cardName]?.[player.id] || 'unknown';
-          return (
-            <div 
-              key={player.id} 
-              onClick={() => openSelector(cardName, player.id, category)}
-              className={`w-16 min-w-[4rem] border-r border-slate-800 flex items-center justify-center cursor-pointer transition-all ${getStatusStyle(status)}`}
-            >
-              <span className="text-lg">{getStatusIcon(status)}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const Section = ({ title, items, icon, category }) => (
     <div className="mb-6 bg-slate-900 rounded-xl shadow-lg border border-slate-800 overflow-hidden">
@@ -211,7 +257,7 @@ export default function Home() {
         <h2 className="font-bold text-slate-100">{title}</h2>
       </div>
       <div className="relative overflow-x-auto">
-        <div className="flex h-10 bg-slate-900 border-b border-slate-800">
+        <div className="flex h-10 bg-slate-900 border-b border-slate-800 min-w-max">
           <div className="sticky left-0 z-10 bg-slate-900 w-32 min-w-[8rem] border-r border-slate-800" />
           <div className="flex">
             {players.map(player => (
@@ -242,7 +288,7 @@ export default function Home() {
               className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 hover:text-blue-300 transition-all border border-blue-500/20 flex items-center gap-2"
             >
               <FileText size={18} />
-              <span className="text-sm font-bold hidden sm:inline">Rapor</span>
+              <span className="text-sm font-bold">Kanıt Özeti</span>
             </button>
           </div>
 
@@ -307,8 +353,10 @@ export default function Home() {
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                             {players.find(p => p.id === activeCell?.playerId)?.name}
                             </p>
-                            <h3 className="text-2xl font-black text-white">
-                            {activeCell?.cardName}
+                            <h3 className="text-2xl font-black text-white flex items-center justify-center gap-2">
+                                {/* Başlıkta da ilgili emojiyi göster */}
+                                {CARD_ICONS[activeCell?.cardName]}
+                                {activeCell?.cardName}
                             </h3>
                         </div>
 
@@ -384,7 +432,12 @@ export default function Home() {
                                     <div className="grid grid-cols-2 gap-3">
                                         {reportData.yes.map((item, idx) => (
                                             <div key={idx} className="bg-green-900/10 border border-green-900/40 rounded-xl p-3 flex flex-col items-start gap-1">
-                                                <span className="font-bold text-slate-200 text-sm line-clamp-1">{item.card}</span>
+                                                <div className="flex items-center gap-2 mb-1 w-full">
+                                                    {CARD_ICONS[item.card] && (
+                                                        <span className="text-sm shrink-0">{CARD_ICONS[item.card]}</span>
+                                                    )}
+                                                    <span className="font-bold text-slate-200 text-sm line-clamp-1">{item.card}</span>
+                                                </div>
                                                 <span className="text-xs font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded-md">
                                                     {item.player}
                                                 </span>
@@ -404,6 +457,9 @@ export default function Home() {
                                     <div className="flex flex-wrap gap-2">
                                         {reportData.maybe.map((item, idx) => (
                                             <div key={idx} className="bg-yellow-900/10 border border-yellow-900/30 rounded-full pl-3 pr-1 py-1 flex items-center gap-2">
+                                                {CARD_ICONS[item.card] && (
+                                                        <span className="text-xs shrink-0">{CARD_ICONS[item.card]}</span>
+                                                )}
                                                 <span className="text-slate-300 text-xs font-medium">{item.card}</span>
                                                 <span className="text-[10px] font-bold text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded-full">
                                                     {item.player}
@@ -424,6 +480,9 @@ export default function Home() {
                                     <div className="flex flex-wrap gap-2">
                                         {reportData.no.map((item, idx) => (
                                             <div key={idx} className="bg-slate-900 border border-slate-800 rounded-md px-2 py-1.5 flex items-center gap-2">
+                                                {CARD_ICONS[item.card] && (
+                                                        <span className="text-[10px] shrink-0 opacity-70">{CARD_ICONS[item.card]}</span>
+                                                )}
                                                 <span className="text-slate-400 text-xs">{item.card}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-700"></span>
                                                 <span className="text-[10px] text-red-400/80 uppercase font-bold">
