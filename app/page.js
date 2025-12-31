@@ -96,22 +96,35 @@ export default function Home() {
     setPlayers(players.map(p => p.id === id ? { ...p, name: newName } : p));
   };
 
-  // --- TOUCH HANDLERS ---
+  // --- TOUCH HANDLERS (DÜZELTİLDİ) ---
   const onTouchStart = (e) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientY);
   };
 
   const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientY);
-    const diff = touchStart - e.targetTouches[0].clientY;
-    if (diff < 0) setTranslateY(diff);
+    const currentY = e.targetTouches[0].clientY;
+    setTouchEnd(currentY);
+    
+    // Aşağı çekildikçe pozitif değer üretmeli (Current - Start)
+    const diff = currentY - touchStart;
+    
+    // Sadece aşağı harekete (pozitif) izin ver
+    if (diff > 0) {
+      setTranslateY(diff);
+    }
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    if (distance < -100) setIsOpen(false);
+    
+    const distance = touchEnd - touchStart; // Aşağı hareket miktarı
+    const isSwipeDown = distance > 100; // 100px'den fazla aşağı çekildiyse kapat
+
+    if (isSwipeDown) {
+      setIsOpen(false);
+    }
+    
     setTranslateY(0);
     setTouchStart(null);
     setTouchEnd(null);
