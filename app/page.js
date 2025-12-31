@@ -31,7 +31,7 @@ export default function Home() {
 
   // --- EFFECT: LOAD & SAVE ---
   useEffect(() => {
-    const savedState = localStorage.getItem('cluedoDarkState_v3');
+    const savedState = localStorage.getItem('cluedoDarkState_v4');
     if (savedState) {
       const parsed = JSON.parse(savedState);
       setPlayers(parsed.players || []);
@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     if (Object.keys(gameData).length > 0) {
-      localStorage.setItem('cluedoDarkState_v3', JSON.stringify({ players, gameData }));
+      localStorage.setItem('cluedoDarkState_v4', JSON.stringify({ players, gameData }));
     }
   }, [players, gameData]);
 
@@ -229,37 +229,6 @@ export default function Home() {
     </div>
   );
 
-  const StatusGroup = ({ title, items, type }) => {
-    if (items.length === 0) return null;
-
-    let styles = {};
-    if (type === 'yes') styles = { text: 'text-green-400', border: 'border-green-500/30', bg: 'bg-green-500/10', icon: '✓' };
-    if (type === 'maybe') styles = { text: 'text-yellow-400', border: 'border-yellow-500/30', bg: 'bg-yellow-500/10', icon: '?' };
-    if (type === 'no') styles = { text: 'text-red-400', border: 'border-red-500/30', bg: 'bg-red-500/10', icon: '✕' };
-
-    return (
-      <div className="mb-6 last:mb-0">
-        <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 px-1 border-b border-slate-800 pb-2 flex justify-between ${styles.text}`}>
-          <span>{title}</span>
-          <span className="opacity-60">{items.length}</span>
-        </h4>
-        <div className="space-y-2">
-          {items.map((item, idx) => (
-            <div key={idx} className={`rounded-lg p-3 border flex items-center justify-between ${styles.bg} ${styles.border}`}>
-              <span className="font-bold text-slate-200">{item.card}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-slate-400 uppercase bg-slate-900/50 px-2 py-1 rounded">
-                  {item.player}
-                </span>
-                <span className={`text-lg font-bold ${styles.text}`}>{styles.icon}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 pb-24 font-sans selection:bg-blue-500/30">
       
@@ -314,7 +283,7 @@ export default function Home() {
           />
           <div
             ref={sheetRef}
-            className={`fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 rounded-t-[2rem] shadow-2xl max-w-md mx-auto transition-transform duration-200 ease-out flex flex-col ${activeSheet === 'report' ? 'h-[75vh]' : ''}`}
+            className={`fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-50 rounded-t-[2rem] shadow-2xl max-w-md mx-auto transition-transform duration-200 ease-out flex flex-col ${activeSheet === 'report' ? 'max-h-[85vh]' : ''}`}
             style={{ transform: `translateY(${translateY}px)` }}
           >
             {/* DRAG HANDLE */}
@@ -377,7 +346,7 @@ export default function Home() {
                     </>
                 )}
 
-                {/* --- REPORT CONTENT --- */}
+                {/* --- REPORT CONTENT (NEW DESIGN) --- */}
                 {activeSheet === 'report' && (
                     <div className="pb-8">
                         <div className="text-center mb-6">
@@ -385,7 +354,6 @@ export default function Home() {
                                 <FileText className="text-blue-400" />
                                 Detaylı Rapor
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1">İşaretlenen durumların özeti</p>
                         </div>
 
                         {(() => {
@@ -404,11 +372,68 @@ export default function Home() {
                           }
 
                           return (
-                            <>
-                              <StatusGroup title="Kesinleşenler (Var)" items={reportData.yes} type="yes" />
-                              <StatusGroup title="Şüpheler (Belki)" items={reportData.maybe} type="maybe" />
-                              <StatusGroup title="Olmayanlar (Yok)" items={reportData.no} type="no" />
-                            </>
+                            <div className="space-y-6">
+                              {/* 1. KESİNLEŞENLER (Grid View) */}
+                              {reportData.yes.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                        Kesinleşenler ({reportData.yes.length})
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {reportData.yes.map((item, idx) => (
+                                            <div key={idx} className="bg-green-900/10 border border-green-900/40 rounded-xl p-3 flex flex-col items-start gap-1">
+                                                <span className="font-bold text-slate-200 text-sm line-clamp-1">{item.card}</span>
+                                                <span className="text-xs font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded-md">
+                                                    {item.player}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                              )}
+
+                              {/* 2. ŞÜPHELER (Chip View) */}
+                              {reportData.maybe.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                        Şüpheler ({reportData.maybe.length})
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {reportData.maybe.map((item, idx) => (
+                                            <div key={idx} className="bg-yellow-900/10 border border-yellow-900/30 rounded-full pl-3 pr-1 py-1 flex items-center gap-2">
+                                                <span className="text-slate-300 text-xs font-medium">{item.card}</span>
+                                                <span className="text-[10px] font-bold text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded-full">
+                                                    {item.player}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                              )}
+
+                              {/* 3. OLMAYANLAR (Dense Chip View) */}
+                              {reportData.no.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                        Olmayanlar ({reportData.no.length})
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {reportData.no.map((item, idx) => (
+                                            <div key={idx} className="bg-slate-900 border border-slate-800 rounded-md px-2 py-1.5 flex items-center gap-2">
+                                                <span className="text-slate-400 text-xs">{item.card}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                <span className="text-[10px] text-red-400/80 uppercase font-bold">
+                                                    {item.player}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                              )}
+                            </div>
                           );
                         })()}
                     </div>
