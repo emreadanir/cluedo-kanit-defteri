@@ -52,7 +52,7 @@ export default function Home() {
 
   // --- EFFECT: LOAD & SAVE ---
   useEffect(() => {
-    const savedState = localStorage.getItem('cluedoDarkState_v6');
+    const savedState = localStorage.getItem('cluedoDarkState_v9');
     if (savedState) {
       const parsed = JSON.parse(savedState);
       setPlayers(parsed.players || []);
@@ -68,9 +68,24 @@ export default function Home() {
 
   useEffect(() => {
     if (Object.keys(gameData).length > 0) {
-      localStorage.setItem('cluedoDarkState_v6', JSON.stringify({ players, gameData }));
+      localStorage.setItem('cluedoDarkState_v9', JSON.stringify({ players, gameData }));
     }
   }, [players, gameData]);
+
+  // --- EFFECT: PREVENT SCROLL ---
+  // Panel veya Modal açıkken arka plan kaydırmasını engelle
+  useEffect(() => {
+    if (activeSheet || showPlayersModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    // Cleanup function
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [activeSheet, showPlayersModal]);
 
   // --- HANDLERS ---
   const handleStatusChange = (status) => {
@@ -152,6 +167,14 @@ export default function Home() {
     setTranslateY(0);
     setTouchStart(null);
     setTouchEnd(null);
+  };
+
+  // --- HELPER: GET CATEGORY ---
+  const getCardCategory = (cardName) => {
+    if (INITIAL_SUSPECTS.includes(cardName)) return 'suspect';
+    if (INITIAL_WEAPONS.includes(cardName)) return 'weapon';
+    if (INITIAL_ROOMS.includes(cardName)) return 'room';
+    return null;
   };
 
   // --- STYLES ---
@@ -366,7 +389,7 @@ export default function Home() {
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-green-900/20 text-green-400 border border-green-900/50 hover:bg-green-900/40 hover:border-green-500/50 transition-all group"
                             >
                             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">✓</div>
-                            <span className="font-bold text-sm">Var</span>
+                            <span className="font-bold text-sm">Kesin</span>
                             </button>
 
                             <button
@@ -374,7 +397,7 @@ export default function Home() {
                             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 hover:border-red-500/50 transition-all group"
                             >
                             <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">✕</div>
-                            <span className="font-bold text-sm">Yok</span>
+                            <span className="font-bold text-sm">Elenen</span>
                             </button>
 
                             <button
@@ -420,29 +443,64 @@ export default function Home() {
                             );
                           }
 
+                          // Kategorize et
+                          const yesSuspects = reportData.yes.filter(item => getCardCategory(item.card) === 'suspect');
+                          const yesWeapons = reportData.yes.filter(item => getCardCategory(item.card) === 'weapon');
+                          const yesRooms = reportData.yes.filter(item => getCardCategory(item.card) === 'room');
+
+                          // Grid Renderer
+                          const renderYesGrid = (items) => (
+                             <div className="grid grid-cols-2 gap-3">
+                                {items.map((item, idx) => (
+                                    <div key={idx} className="bg-green-900/10 border border-green-900/40 rounded-xl p-3 flex flex-col items-start gap-1">
+                                        <div className="flex items-center gap-2 mb-1 w-full">
+                                            {CARD_ICONS[item.card] && (
+                                                <span className="text-sm shrink-0">{CARD_ICONS[item.card]}</span>
+                                            )}
+                                            <span className="font-bold text-slate-200 text-sm line-clamp-1">{item.card}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                          );
+
                           return (
-                            <div className="space-y-6">
-                              {/* 1. KESİNLEŞENLER (Grid View) */}
+                            <div className="space-y-8">
+                              {/* 1. KESİNLEŞENLER (Gruplandırılmış) */}
                               {reportData.yes.length > 0 && (
                                 <div>
-                                    <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                    <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-green-900/30 pb-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
                                         Kesinleşenler ({reportData.yes.length})
                                     </h4>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {reportData.yes.map((item, idx) => (
-                                            <div key={idx} className="bg-green-900/10 border border-green-900/40 rounded-xl p-3 flex flex-col items-start gap-1">
-                                                <div className="flex items-center gap-2 mb-1 w-full">
-                                                    {CARD_ICONS[item.card] && (
-                                                        <span className="text-sm shrink-0">{CARD_ICONS[item.card]}</span>
-                                                    )}
-                                                    <span className="font-bold text-slate-200 text-sm line-clamp-1">{item.card}</span>
-                                                </div>
-                                                <span className="text-xs font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded-md">
-                                                    {item.player}
-                                                </span>
+                                    
+                                    <div className="space-y-5 pl-1">
+                                        {yesSuspects.length > 0 && (
+                                            <div>
+                                                <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
+                                                    🕵️ Şüpheliler
+                                                </h5>
+                                                {renderYesGrid(yesSuspects)}
                                             </div>
-                                        ))}
+                                        )}
+                                        
+                                        {yesWeapons.length > 0 && (
+                                            <div>
+                                                <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
+                                                    🔧 Aletler
+                                                </h5>
+                                                {renderYesGrid(yesWeapons)}
+                                            </div>
+                                        )}
+                                        
+                                        {yesRooms.length > 0 && (
+                                            <div>
+                                                <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
+                                                    🏰 Odalar
+                                                </h5>
+                                                {renderYesGrid(yesRooms)}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                               )}
@@ -452,30 +510,27 @@ export default function Home() {
                                 <div>
                                     <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                        Şüpheler ({reportData.maybe.length})
+                                        Belki? ({reportData.maybe.length})
                                     </h4>
                                     <div className="flex flex-wrap gap-2">
                                         {reportData.maybe.map((item, idx) => (
-                                            <div key={idx} className="bg-yellow-900/10 border border-yellow-900/30 rounded-full pl-3 pr-1 py-1 flex items-center gap-2">
+                                            <div key={idx} className="bg-yellow-900/10 border border-yellow-900/30 rounded-full pl-3 pr-2 py-1 flex items-center gap-2">
                                                 {CARD_ICONS[item.card] && (
                                                         <span className="text-xs shrink-0">{CARD_ICONS[item.card]}</span>
                                                 )}
                                                 <span className="text-slate-300 text-xs font-medium">{item.card}</span>
-                                                <span className="text-[10px] font-bold text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded-full">
-                                                    {item.player}
-                                                </span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                               )}
 
-                              {/* 3. OLMAYANLAR (Dense Chip View) */}
+                              {/* 3. ELENENLER (Dense Chip View) */}
                               {reportData.no.length > 0 && (
                                 <div>
                                     <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                        Olmayanlar ({reportData.no.length})
+                                        Elenenler ({reportData.no.length})
                                     </h4>
                                     <div className="flex flex-wrap gap-2">
                                         {reportData.no.map((item, idx) => (
