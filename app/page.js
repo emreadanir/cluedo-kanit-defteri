@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { RotateCcw, X, Users, FileText, Plus, Trash2 } from 'lucide-react';
 
 // Başlangıç Verileri
-const INITIAL_SUSPECTS = ['Green', 'Mustard', 'Orchid', 'Peacock', 'Plum', 'Scarlett'];
+// Güncellenmiş Şüpheli Listesi
+const INITIAL_SUSPECTS = ['Başkan Green', 'Albay Mustard', 'Şef White', 'Avukat Peacock', 'Profesör Plum', 'Bayan Scarlett'];
 const INITIAL_WEAPONS = ['Şamdan', 'Hançer', 'Tabanca', 'Kurşun Boru', 'İp', 'İngiliz Anahtarı'];
 const INITIAL_ROOMS = ['Balo Salonu', 'Bilardo Odası', 'Kış Bahçesi', 'Yemek Odası', 'Hol', 'Mutfak', 'Kütüphane', 'Salon', 'Çalışma Odası'];
 
